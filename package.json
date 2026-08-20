@@ -1,0 +1,7 @@
+{
+  "name": "deacongg",
+  "version": "1.0.0",
+  "description": "Deacon_413 — a Twitch chat bot any channel can install and configure for itself.",
+  "private": true,
+  "engines": { "node": ">=18" }
+}

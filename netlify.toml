@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/webhook"
+  to = "/.netlify/functions/eventsub-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/install"
+  to = "/.netlify/functions/auth-start"
+  status = 200
