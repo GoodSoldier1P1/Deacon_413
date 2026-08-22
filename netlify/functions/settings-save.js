@@ -8,6 +8,7 @@ const ALLOWED_FIELDS = [
   "donationEnabled",
   "donationLink",
   "donationCommand",
+  "donationMessage",
   "prayerEnabled",
   "prayerCommand",
 ];

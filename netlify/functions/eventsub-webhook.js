@@ -48,7 +48,8 @@ async function handleChatMessage(evt) {
 
   if (settings.donationEnabled && cmdLower === (settings.donationCommand || "!give").toLowerCase()) {
     const link = settings.donationLink || "(no donation link set yet)";
-    await sendChatMessage(broadcasterId, `💛 Support the stream: ${link}`);
+    const message = settings.donationMessage || "💛 Support the stream:";
+    await sendChatMessage(broadcasterId, `${message} ${link}`);
     return;
   }
 

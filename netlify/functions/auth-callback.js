@@ -25,6 +25,7 @@ exports.handler = async (event) => {
         donationEnabled: false,
         donationLink: "",
         donationCommand: "!give",
+        donationMessage: "💛 Support the stream:",
         prayerEnabled: false,
         prayerCommand: "!prayer",
         installedAt: Date.now(),
