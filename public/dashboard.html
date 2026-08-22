@@ -231,6 +231,24 @@
       <button class="save" type="submit">Save settings</button>
       <div id="status"></div>
     </form>
+
+    <div class="section" id="obs-source-section" style="display:none;">
+      <h3 style="margin-top:0;">Prayer queue — OBS Browser Source</h3>
+      <p style="font-size:13px; opacity:0.75; margin-top:6px; line-height:1.5;">
+        Add this URL as a Browser Source in OBS to see pending requests without
+        switching windows. It's private to you — nothing here is meant for viewers.
+        Right-click the source in OBS and choose <b>Interact</b> to click items and check them off directly inside it —
+        checked items dim instead of disappearing, so anything still bright is new. Use "Clear prayed items" to sweep
+        out checked ones once you're caught up.
+      </p>
+      <div class="field" style="margin-top:12px;">
+        <input type="text" id="overlay-url" readonly style="cursor:text;" onclick="this.select()">
+      </div>
+      <button type="button" id="copy-overlay-url" style="margin-top:10px; padding:8px 18px; border:1px solid var(--gold); border-radius:6px;
+                   background:transparent; color:var(--gold-bright); font-size:13px; cursor:pointer;">
+        Copy URL
+      </button>
+    </div>
   </div>
 
   <script>
@@ -259,6 +277,12 @@
         document.getElementById("prayerEnabled").checked = !!data.prayerEnabled;
         document.getElementById("prayerCommand").value = data.prayerCommand || "!prayer";
 
+        if (data.overlayKey) {
+          const overlayUrl = `${window.location.origin}/queue-overlay.html?key=${data.overlayKey}`;
+          document.getElementById("overlay-url").value = overlayUrl;
+          document.getElementById("obs-source-section").style.display = "block";
+        }
+
         document.getElementById("loading").style.display = "none";
         document.getElementById("settings-form").style.display = "block";
       } catch (err) {
@@ -267,6 +291,17 @@
         document.getElementById("error").textContent = "Couldn't load settings: " + err.message;
       }
     }
+
+    document.getElementById("copy-overlay-url").addEventListener("click", () => {
+      const input = document.getElementById("overlay-url");
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.getElementById("copy-overlay-url");
+        const original = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(() => (btn.textContent = original), 1800);
+      });
+    });
 
     document.getElementById("settings-form").addEventListener("submit", async (e) => {
       e.preventDefault();
