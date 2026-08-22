@@ -1,7 +1,7 @@
 // netlify/functions/lib/twitch.js
 //
 // Required env vars:
-//   TWITCH_CLIENT_ID = 34ac1dbedrip100enkuurvvx21mkqg
+//   TWITCH_CLIENT_ID
 //   TWITCH_CLIENT_SECRET
 //   TWITCH_EVENTSUB_SECRET   (any random string you invent, used to verify
 //                             that webhook notifications really came from Twitch)
