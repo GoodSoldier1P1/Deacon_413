@@ -5,7 +5,7 @@
 //   TWITCH_CLIENT_SECRET
 //   TWITCH_EVENTSUB_SECRET   (any random string you invent, used to verify
 //                             that webhook notifications really came from Twitch)
-//   PUBLIC_BASE_URL          (e.g. https://deacongg.netlify.app)
+//   PUBLIC_BASE_URL          
 
 const { fbGet, fbSet } = require("./firebase");
 
