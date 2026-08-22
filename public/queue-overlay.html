@@ -1,146 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Deacon_413 — Prayer Queue</title>
-<style>
-  :root{ --gold:#c9a15a; --gold-bright:#f5d98b; --ivory:#f2ede1; }
-  html,body{
-    margin:0; padding:0; background:transparent;
-    font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ivory);
-  }
-  #wrap{
-    box-sizing:border-box;
-    max-width:420px;
-    padding:16px;
-  }
-  #header{
-    font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-    color: var(--gold-bright); opacity:0.9; margin-bottom:10px;
-  }
-  .item{
-    background: rgba(15,17,34,0.88);
-    border:1px solid rgba(201,161,90,0.35);
-    border-radius:8px;
-    padding:12px 14px;
-    margin-bottom:10px;
-    display:flex;
-    gap:12px;
-    align-items:flex-start;
-    cursor:pointer;
-    transition: opacity 0.3s ease;
-  }
-  .item.prayed{ opacity:0.4; }
-  .check{
-    flex-shrink:0;
-    width:20px; height:20px;
-    border:2px solid var(--gold);
-    border-radius:5px;
-    margin-top:1px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:14px; color: var(--gold-bright);
-    user-select:none;
-  }
-  .item.prayed .check{ background: rgba(201,161,90,0.3); }
-  .item-body{ flex:1; }
-  .item-text{ font-size:15px; line-height:1.4; }
-  .item-meta{ font-size:12px; opacity:0.6; margin-top:6px; }
-  #clear-btn{
-    display:none;
-    margin-bottom:12px;
-    padding:6px 14px;
-    border:1px solid var(--gold);
-    border-radius:6px;
-    background: rgba(201,161,90,0.12);
-    color: var(--gold-bright);
-    font-size:13px;
-    cursor:pointer;
-  }
-  #clear-btn:hover{ background: rgba(201,161,90,0.25); }
-  #empty{
-    font-size:13px; opacity:0.55; font-style:italic; padding:4px 2px;
-  }
-  #error{
-    font-size:12px; color:#e08a8a; background:rgba(0,0,0,0.5);
-    padding:6px 10px; border-radius:6px; display:none;
-  }
-</style>
-</head>
-<body>
-<div id="wrap">
-  <div id="header">Prayer Queue</div>
-  <div id="error"></div>
-  <button id="clear-btn">Clear prayed items</button>
-  <div id="list"></div>
-  <div id="empty" style="display:none;">All caught up 🙏</div>
-</div>
-
-<script>
-const params = new URLSearchParams(window.location.search);
-const key = params.get("key");
-const errorEl = document.getElementById("error");
-const listEl = document.getElementById("list");
-const emptyEl = document.getElementById("empty");
-const clearBtn = document.getElementById("clear-btn");
-
-if (!key) {
-  errorEl.style.display = "block";
-  errorEl.textContent = "Missing ?key — copy this URL fresh from the dashboard.";
-} else {
-  loadQueue();
-  setInterval(loadQueue, 12000);
-}
-
-clearBtn.addEventListener("click", async () => {
-  clearBtn.disabled = true;
-  try {
-    await fetch(`/.netlify/functions/queue-overlay-clear?key=${key}`, { method: "POST" });
-    loadQueue();
-  } finally {
-    clearBtn.disabled = false;
-  }
-});
-
-function escapeHtml(str){
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function timeAgo(ts){
-  const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-async function loadQueue(){
-  try {
-    const res = await fetch(`/.netlify/functions/queue-overlay-data?key=${key}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(await res.text());
-    const entries = await res.json();
-
-    errorEl.style.display = "none";
-
-    if (entries.length === 0) {
-      listEl.innerHTML = "";
-      emptyEl.style.display = "block";
-      clearBtn.style.display = "none";
-      return;
+  <meta charset="UTF-8">
+  <title>Deacon_413 — Prayer Queue</title>
+  <style>
+    :root {
+      --gold: #c9a15a;
+      --gold-bright: #f5d98b;
+      --ivory: #f2ede1;
+      --ink: #0b0c1a;
     }
-    emptyEl.style.display = "none";
-    clearBtn.style.display = entries.some(e => e.prayed) ? "block" : "none";
 
-    // New (unprayed) items float to the top so they're the first thing
-    // seen after a break — prayed ones sink below, dimmed.
-    const sorted = [...entries].sort((a, b) => {
-      if (!!a.prayed !== !!b.prayed) return a.prayed ? 1 : -1;
-      return a.at - b.at;
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 0%, #1b1d33 0%, var(--ink) 65%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--ivory);
+    }
+
+    #wrap {
+      box-sizing: border-box;
+      max-width: 420px;
+      padding: 16px;
+    }
+
+    #header {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    .item {
+      background: rgba(15, 17, 34, 0.88);
+      border: 1px solid rgba(201, 161, 90, 0.35);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+
+    .item.prayed {
+      opacity: 0.4;
+    }
+
+    .check {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gold);
+      border-radius: 5px;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--gold-bright);
+      user-select: none;
+    }
+
+    .item.prayed .check {
+      background: rgba(201, 161, 90, 0.3);
+    }
+
+    .item-body {
+      flex: 1;
+    }
+
+    .item-text {
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .item-meta {
+      font-size: 12px;
+      opacity: 0.6;
+      margin-top: 6px;
+    }
+
+    #clear-btn {
+      display: none;
+      margin-bottom: 12px;
+      padding: 6px 14px;
+      border: 1px solid var(--gold);
+      border-radius: 6px;
+      background: rgba(201, 161, 90, 0.12);
+      color: var(--gold-bright);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #clear-btn:hover {
+      background: rgba(201, 161, 90, 0.25);
+    }
+
+    #empty {
+      font-size: 13px;
+      opacity: 0.55;
+      font-style: italic;
+      padding: 4px 2px;
+    }
+
+    #error {
+      font-size: 12px;
+      color: #e08a8a;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="header">Prayer Queue</div>
+    <div id="error"></div>
+    <button id="clear-btn">Clear prayed items</button>
+    <div id="list"></div>
+    <div id="empty" style="display:none;">All caught up 🙏</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get("key");
+    const errorEl = document.getElementById("error");
+    const listEl = document.getElementById("list");
+    const emptyEl = document.getElementById("empty");
+    const clearBtn = document.getElementById("clear-btn");
+
+    if (!key) {
+      errorEl.style.display = "block";
+      errorEl.textContent = "Missing ?key — copy this URL fresh from the dashboard.";
+    } else {
+      loadQueue();
+      setInterval(loadQueue, 12000);
+    }
+
+    clearBtn.addEventListener("click", async () => {
+      clearBtn.disabled = true;
+      try {
+        await fetch(`/.netlify/functions/queue-overlay-clear?key=${key}`, { method: "POST" });
+        loadQueue();
+      } finally {
+        clearBtn.disabled = false;
+      }
     });
 
-    listEl.innerHTML = sorted.map(e => `
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function timeAgo(ts) {
+      const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+      if (mins < 1) return "just now";
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
+    }
+
+    async function loadQueue() {
+      try {
+        const res = await fetch(`/.netlify/functions/queue-overlay-data?key=${key}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(await res.text());
+        const entries = await res.json();
+
+        errorEl.style.display = "none";
+
+        if (entries.length === 0) {
+          listEl.innerHTML = "";
+          emptyEl.style.display = "block";
+          clearBtn.style.display = "none";
+          return;
+        }
+        emptyEl.style.display = "none";
+        clearBtn.style.display = entries.some(e => e.prayed) ? "block" : "none";
+
+        // New (unprayed) items float to the top so they're the first thing
+        // seen after a break — prayed ones sink below, dimmed.
+        const sorted = [...entries].sort((a, b) => {
+          if (!!a.prayed !== !!b.prayed) return a.prayed ? 1 : -1;
+          return a.at - b.at;
+        });
+
+        listEl.innerHTML = sorted.map(e => `
       <div class="item ${e.prayed ? 'prayed' : ''}" data-entry-key="${e.entryKey}" data-prayed="${!!e.prayed}">
         <div class="check">${e.prayed ? "✓" : ""}</div>
         <div class="item-body">
@@ -150,29 +207,30 @@ async function loadQueue(){
       </div>
     `).join("");
 
-    document.querySelectorAll(".item").forEach(el => {
-      el.addEventListener("click", async () => {
-        const nowPrayed = el.dataset.prayed !== "true";
-        // Optimistic UI update — flips instantly, doesn't wait on the network.
-        el.classList.toggle("prayed", nowPrayed);
-        el.dataset.prayed = String(nowPrayed);
-        el.querySelector(".check").textContent = nowPrayed ? "✓" : "";
-        try {
-          await fetch(`/.netlify/functions/queue-overlay-toggle?key=${key}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ entryKey: el.dataset.entryKey, prayed: nowPrayed }),
+        document.querySelectorAll(".item").forEach(el => {
+          el.addEventListener("click", async () => {
+            const nowPrayed = el.dataset.prayed !== "true";
+            // Optimistic UI update — flips instantly, doesn't wait on the network.
+            el.classList.toggle("prayed", nowPrayed);
+            el.dataset.prayed = String(nowPrayed);
+            el.querySelector(".check").textContent = nowPrayed ? "✓" : "";
+            try {
+              await fetch(`/.netlify/functions/queue-overlay-toggle?key=${key}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ entryKey: el.dataset.entryKey, prayed: nowPrayed }),
+              });
+            } catch {
+              // If the request failed, the next 12s poll will resync the real state.
+            }
           });
-        } catch {
-          // If the request failed, the next 12s poll will resync the real state.
-        }
-      });
-    });
-  } catch (err) {
-    errorEl.style.display = "block";
-    errorEl.textContent = "Couldn't load queue: " + err.message;
-  }
-}
-</script>
+        });
+      } catch (err) {
+        errorEl.style.display = "block";
+        errorEl.textContent = "Couldn't load queue: " + err.message;
+      }
+    }
+  </script>
 </body>
+
 </html>
