@@ -19,6 +19,7 @@ exports.handler = async (event) => {
     // re-installing shouldn't wipe an existing channel's configuration.
     const existing = await fbGet(`channels/${broadcaster.id}`).catch(() => null);
     if (!existing) {
+      const overlayKey = crypto.randomBytes(20).toString("hex");
       await fbSet(`channels/${broadcaster.id}`, {
         login: broadcaster.login,
         displayName: broadcaster.display_name,
@@ -28,8 +29,10 @@ exports.handler = async (event) => {
         donationMessage: "💛 Support the stream:",
         prayerEnabled: false,
         prayerCommand: "!prayer",
+        overlayKey,
         installedAt: Date.now(),
       });
+      await fbSet(`overlayKeys/${overlayKey}`, broadcaster.id);
       await subscribeToChatMessages(broadcaster.id);
     }
 
