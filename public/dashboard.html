@@ -107,26 +107,42 @@
   </form>
 
   <div class="section" id="obs-source-section" style="display:none;">
-    <h3 style="margin-top:0;">Prayer queue — OBS Browser Source</h3>
+    <h3 style="margin-top:0;">Prayer queue — for OBS</h3>
     <p style="font-size:13px; opacity:0.75; margin-top:6px; line-height:1.5;">
-      Add this URL as a <b>Custom Browser Dock</b> in OBS — <b>Docks &gt; Custom Browser Docks</b>,
-      give it a name, paste the URL. Docks live in the OBS window itself
-      (not your scene), so you can click checkboxes directly without any
-      Interact mode, and it never risks ending up on stream.
-      Checked items dim instead of disappearing, so anything still bright is new.
-      Use "Clear prayed items" to sweep out checked ones once you're caught up.
+      There are two URLs below — use the right one for what you're setting up.
+      Both show the same queue; only the Dock one has the gear icon for
+      adjusting text size, spacing, and auto-scroll.
     </p>
-    <div class="field" style="margin-top:12px;">
-      <input type="text" id="overlay-url" readonly
-             style="cursor:text;" onclick="this.select()">
+
+    <div class="field" style="margin-top:14px;">
+      <label style="display:block; font-size:13px; opacity:0.85; margin-bottom:6px;">
+        <b>Custom Browser Dock</b> — your own controls, never seen by viewers.
+        Add via <b>Docks &gt; Custom Browser Docks</b> in OBS.
+      </label>
+      <input type="text" id="dock-url" readonly style="cursor:text;" onclick="this.select()">
+      <button type="button" id="copy-dock-url" class="copy-url-btn">Copy Dock URL</button>
     </div>
-    <button type="button" id="copy-overlay-url"
-            style="margin-top:10px; padding:8px 18px; border:1px solid var(--gold); border-radius:6px;
-                   background:transparent; color:var(--gold-bright); font-size:13px; cursor:pointer;">
-      Copy URL
-    </button>
+
+    <div class="field" style="margin-top:18px;">
+      <label style="display:block; font-size:13px; opacity:0.85; margin-bottom:6px;">
+        <b>Browser Source</b> — for showing the queue on stream. No controls
+        appear here on purpose. Set its actual size in the source's
+        <b>Properties</b> (Width/Height fields) rather than dragging it
+        smaller in the scene, so text scales properly instead of shrinking
+        like a squished image.
+      </label>
+      <input type="text" id="source-url" readonly style="cursor:text;" onclick="this.select()">
+      <button type="button" id="copy-source-url" class="copy-url-btn">Copy Source URL</button>
+    </div>
   </div>
 </div>
+
+<style>
+  .copy-url-btn{
+    margin-top:8px; padding:8px 18px; border:1px solid var(--gold); border-radius:6px;
+    background:transparent; color:var(--gold-bright); font-size:13px; cursor:pointer;
+  }
+</style>
 
 <script>
 const params = new URLSearchParams(window.location.search);
@@ -155,8 +171,10 @@ async function loadSettings() {
     document.getElementById("prayerCommand").value = data.prayerCommand || "!prayer";
 
     if (data.overlayKey) {
-      const overlayUrl = `${window.location.origin}/queue-overlay.html?key=${data.overlayKey}`;
-      document.getElementById("overlay-url").value = overlayUrl;
+      document.getElementById("dock-url").value =
+        `${window.location.origin}/queue-overlay.html?key=${data.overlayKey}&dock=1`;
+      document.getElementById("source-url").value =
+        `${window.location.origin}/queue-overlay.html?key=${data.overlayKey}`;
       document.getElementById("obs-source-section").style.display = "block";
     }
 
@@ -169,16 +187,20 @@ async function loadSettings() {
   }
 }
 
-document.getElementById("copy-overlay-url").addEventListener("click", () => {
-  const input = document.getElementById("overlay-url");
-  input.select();
-  navigator.clipboard.writeText(input.value).then(() => {
-    const btn = document.getElementById("copy-overlay-url");
-    const original = btn.textContent;
-    btn.textContent = "Copied ✓";
-    setTimeout(() => (btn.textContent = original), 1800);
+function wireCopyButton(buttonId, inputId){
+  document.getElementById(buttonId).addEventListener("click", () => {
+    const input = document.getElementById(inputId);
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+      const btn = document.getElementById(buttonId);
+      const original = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(() => (btn.textContent = original), 1800);
+    });
   });
-});
+}
+wireCopyButton("copy-dock-url", "dock-url");
+wireCopyButton("copy-source-url", "source-url");
 
 document.getElementById("settings-form").addEventListener("submit", async (e) => {
   e.preventDefault();

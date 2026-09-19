@@ -21,9 +21,11 @@ exports.handler = async (event) => {
         .sort((a, b) => a.at - b.at) // oldest first
     : [];
 
+  const settings = await fbGet(`channels/${broadcasterId}/queueDisplaySettings`).catch(() => null);
+
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    body: JSON.stringify(entries),
+    body: JSON.stringify({ entries, settings }),
   };
 };

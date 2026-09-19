@@ -77,9 +77,11 @@
     position:fixed; top:8px; right:8px; z-index:30;
     width:24px; height:24px; border-radius:50%;
     background: rgba(15,17,34,0.7); border:1px solid rgba(201,161,90,0.4);
-    color: var(--gold-bright); font-size:13px; line-height:22px; text-align:center;
+    color: var(--gold-bright); font-size:13px; text-align:center;
     cursor:pointer; opacity:0.5; transition: opacity 0.2s ease;
     user-select:none;
+    display:none; /* only shown in dock mode (&dock=1) — never on a live Source */
+    align-items:center; justify-content:center;
   }
   #settings-btn:hover{ opacity:1; }
   #settings-panel{
@@ -131,70 +133,79 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const key = params.get("key");
+const isDockMode = params.get("dock") === "1";
 const errorEl = document.getElementById("error");
 const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("empty");
 const clearBtn = document.getElementById("clear-btn");
 
 // ---------------------------------------------------------------------
-// Display settings (gear icon) — saved to this browser's localStorage,
-// so each placement (a small corner Source vs. a big dock) can keep its
-// own feel. Nothing here is sent anywhere; it only affects this one view.
+// Display settings (gear icon) — shared through the same backend the
+// queue itself uses, keyed off the same overlayKey. This is deliberate:
+// a live on-stream Browser Source can't show controls (viewers would see
+// them), and Source/Dock are separate browser instances even loading the
+// same URL, so localStorage alone would never sync between them. Only
+// the Dock (loaded with &dock=1 in its URL) shows the gear; the Source
+// just quietly picks up whatever the Dock last saved, on its next poll.
 // ---------------------------------------------------------------------
-const SETTINGS_KEY = "deacon413QueueOverlaySettings";
 const DEFAULT_SETTINGS = { fontSize: 15, spacing: 12, scrollSpeedIndex: 2 };
 const SCROLL_SPEEDS = [0, 0.5, 1, 1.8, 3]; // px per 30ms tick
 const SCROLL_LABELS = ["Off", "Slow", "Normal", "Fast", "Very fast"];
 
-let settings = null; // null = untouched, CSS's own responsive sizing stays in control
-try {
-  const saved = localStorage.getItem(SETTINGS_KEY);
-  if (saved) settings = JSON.parse(saved);
-} catch {}
-
-function effectiveSettings(){ return settings || DEFAULT_SETTINGS; }
+let settings = DEFAULT_SETTINGS;
 
 function applyCssVars(){
-  if (!settings) return; // nothing customized yet, leave the stylesheet's clamp() alone
   document.documentElement.style.setProperty("--user-font-size", settings.fontSize + "px");
   document.documentElement.style.setProperty("--user-item-padding", settings.spacing + "px");
 }
 
 function syncPanelUI(){
-  const s = effectiveSettings();
-  document.getElementById("font-size-range").value = s.fontSize;
-  document.getElementById("font-size-value").textContent = s.fontSize + "px";
-  document.getElementById("spacing-range").value = s.spacing;
-  document.getElementById("spacing-value").textContent = s.spacing + "px";
-  document.getElementById("scroll-speed-range").value = s.scrollSpeedIndex;
-  document.getElementById("scroll-speed-value").textContent = SCROLL_LABELS[s.scrollSpeedIndex];
+  document.getElementById("font-size-range").value = settings.fontSize;
+  document.getElementById("font-size-value").textContent = settings.fontSize + "px";
+  document.getElementById("spacing-range").value = settings.spacing;
+  document.getElementById("spacing-value").textContent = settings.spacing + "px";
+  document.getElementById("scroll-speed-range").value = settings.scrollSpeedIndex;
+  document.getElementById("scroll-speed-value").textContent = SCROLL_LABELS[settings.scrollSpeedIndex];
 }
 
-function updateSetting(field, value){
-  settings = { ...effectiveSettings(), [field]: value };
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
-  applyCssVars();
-  syncPanelUI();
-  manageAutoScroll();
+async function pushSettings(){
+  try {
+    await fetch(`/.netlify/functions/queue-overlay-settings-save?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+  } catch {
+    // Next poll cycle will just re-apply whatever's actually saved.
+  }
 }
 
-document.getElementById("settings-btn").addEventListener("click", () => {
-  document.getElementById("settings-panel").classList.toggle("open");
-});
-document.getElementById("font-size-range").addEventListener("input", (e) => updateSetting("fontSize", Number(e.target.value)));
-document.getElementById("spacing-range").addEventListener("input", (e) => updateSetting("spacing", Number(e.target.value)));
-document.getElementById("scroll-speed-range").addEventListener("input", (e) => updateSetting("scrollSpeedIndex", Number(e.target.value)));
-document.getElementById("settings-reset").addEventListener("click", () => {
-  settings = null;
-  try { localStorage.removeItem(SETTINGS_KEY); } catch {}
-  document.documentElement.style.removeProperty("--user-font-size");
-  document.documentElement.style.removeProperty("--user-item-padding");
+function saveSetting(field, value){
+  settings = { ...settings, [field]: value };
+  applyCssVars();     // apply immediately — don't wait on the network
   syncPanelUI();
   manageAutoScroll();
-});
+  pushSettings();
+}
 
-applyCssVars();
-syncPanelUI();
+if (isDockMode) {
+  document.getElementById("settings-btn").style.display = "flex";
+  document.getElementById("settings-btn").addEventListener("click", () => {
+    document.getElementById("settings-panel").classList.toggle("open");
+  });
+  document.getElementById("font-size-range").addEventListener("input", (e) => saveSetting("fontSize", Number(e.target.value)));
+  document.getElementById("spacing-range").addEventListener("input", (e) => saveSetting("spacing", Number(e.target.value)));
+  document.getElementById("scroll-speed-range").addEventListener("input", (e) => saveSetting("scrollSpeedIndex", Number(e.target.value)));
+  document.getElementById("settings-reset").addEventListener("click", () => {
+    settings = { ...DEFAULT_SETTINGS };
+    applyCssVars();
+    syncPanelUI();
+    manageAutoScroll();
+    pushSettings();
+  });
+}
+// On a plain Source URL (no &dock=1), the gear button/panel stay hidden —
+// their CSS default is display:none, so nothing extra needs to happen here.
 
 if (!key) {
   errorEl.style.display = "block";
@@ -233,7 +244,16 @@ async function loadQueue(){
   try {
     const res = await fetch(`/.netlify/functions/queue-overlay-data?key=${key}`, { cache: "no-store" });
     if (!res.ok) throw new Error(await res.text());
-    const entries = await res.json();
+    const data = await res.json();
+    const entries = data.entries || [];
+
+    // Pick up whatever the Dock last saved — this is how a plain Source
+    // (no controls of its own) stays in sync without any interaction.
+    if (data.settings) {
+      settings = { ...DEFAULT_SETTINGS, ...data.settings };
+      applyCssVars();
+      if (isDockMode) syncPanelUI();
+    }
 
     errorEl.style.display = "none";
 
@@ -302,7 +322,7 @@ let autoScrollTimer = null;
 
 function manageAutoScroll(){
   clearInterval(autoScrollTimer);
-  const pxPerTick = SCROLL_SPEEDS[effectiveSettings().scrollSpeedIndex];
+  const pxPerTick = SCROLL_SPEEDS[settings.scrollSpeedIndex];
   const overflowing = wrapEl.scrollHeight > wrapEl.clientHeight + 4;
 
   if (!overflowing) {
