@@ -1,203 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <title>Deacon_413 — Prayer Queue</title>
-  <style>
-    :root {
-      --gold: #c9a15a;
-      --gold-bright: #f5d98b;
-      --ivory: #f2ede1;
-      --ink: #0b0c1a;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at 50% 0%, #1b1d33 0%, var(--ink) 65%);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      color: var(--ivory);
-    }
-
-    #wrap {
-      box-sizing: border-box;
-      max-width: 420px;
-      padding: 16px;
-    }
-
-    #header {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--gold-bright);
-      opacity: 0.9;
-      margin-bottom: 10px;
-    }
-
-    .item {
-      background: rgba(15, 17, 34, 0.88);
-      border: 1px solid rgba(201, 161, 90, 0.35);
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      cursor: pointer;
-      transition: opacity 0.3s ease;
-    }
-
-    .item.prayed {
-      opacity: 0.4;
-    }
-
-    .check {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--gold);
-      border-radius: 5px;
-      margin-top: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      color: var(--gold-bright);
-      user-select: none;
-    }
-
-    .item.prayed .check {
-      background: rgba(201, 161, 90, 0.3);
-    }
-
-    .item-body {
-      flex: 1;
-    }
-
-    .item-text {
-      font-size: 15px;
-      line-height: 1.4;
-    }
-
-    .item-meta {
-      font-size: 12px;
-      opacity: 0.6;
-      margin-top: 6px;
-    }
-
-    #clear-btn {
-      display: none;
-      margin-bottom: 12px;
-      padding: 6px 14px;
-      border: 1px solid var(--gold);
-      border-radius: 6px;
-      background: rgba(201, 161, 90, 0.12);
-      color: var(--gold-bright);
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    #clear-btn:hover {
-      background: rgba(201, 161, 90, 0.25);
-    }
-
-    #empty {
-      font-size: 13px;
-      opacity: 0.55;
-      font-style: italic;
-      padding: 4px 2px;
-    }
-
-    #error {
-      font-size: 12px;
-      color: #e08a8a;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 6px 10px;
-      border-radius: 6px;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Deacon_413 — Prayer Queue</title>
+<style>
+  :root{
+    --gold:#c9a15a; --gold-bright:#f5d98b; --ivory:#f2ede1; --ink:#0b0c1a;
+    --user-font-size: clamp(12px, 2.4vh, 15px);
+    --user-item-padding: 12px;
+  }
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background: radial-gradient(circle at 50% 0%, #1b1d33 0%, var(--ink) 65%);
+    font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ivory);
+  }
+  #wrap{
+    box-sizing:border-box;
+    width:100%;
+    height:100vh;
+    padding:16px;
+    overflow-y:auto;
+    scrollbar-width:none; /* Firefox */
+  }
+  #wrap::-webkit-scrollbar{ display:none; } /* OBS's Chromium-based renderer */
+  #header{
+    font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    color: var(--gold-bright); opacity:0.9; margin-bottom:10px;
+  }
+  .item{
+    background: rgba(15,17,34,0.88);
+    border:1px solid rgba(201,161,90,0.35);
+    border-radius:8px;
+    padding: var(--user-item-padding) 14px;
+    margin-bottom:10px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    cursor:pointer;
+    transition: opacity 0.3s ease;
+  }
+  .item.prayed{ opacity:0.4; }
+  .check{
+    flex-shrink:0;
+    width:20px; height:20px;
+    border:2px solid var(--gold);
+    border-radius:5px;
+    margin-top:1px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; color: var(--gold-bright);
+    user-select:none;
+  }
+  .item.prayed .check{ background: rgba(201,161,90,0.3); }
+  .item-body{ flex:1; }
+  .item-text{ font-size: var(--user-font-size); line-height:1.4; }
+  .item-meta{ font-size: calc(var(--user-font-size) * 0.78); opacity:0.6; margin-top:6px; }
+  #clear-btn{
+    display:none;
+    margin-bottom:12px;
+    padding:6px 14px;
+    border:1px solid var(--gold);
+    border-radius:6px;
+    background: rgba(201,161,90,0.12);
+    color: var(--gold-bright);
+    font-size:13px;
+    cursor:pointer;
+  }
+  #clear-btn:hover{ background: rgba(201,161,90,0.25); }
+  #empty{
+    font-size:13px; opacity:0.55; font-style:italic; padding:4px 2px;
+  }
+  #error{
+    font-size:12px; color:#e08a8a; background:rgba(0,0,0,0.5);
+    padding:6px 10px; border-radius:6px; display:none;
+  }
+  #settings-btn{
+    position:fixed; top:8px; right:8px; z-index:30;
+    width:24px; height:24px; border-radius:50%;
+    background: rgba(15,17,34,0.7); border:1px solid rgba(201,161,90,0.4);
+    color: var(--gold-bright); font-size:13px; line-height:22px; text-align:center;
+    cursor:pointer; opacity:0.5; transition: opacity 0.2s ease;
+    user-select:none;
+  }
+  #settings-btn:hover{ opacity:1; }
+  #settings-panel{
+    position:fixed; top:36px; right:8px; z-index:30;
+    width:190px; background: rgba(11,12,26,0.97);
+    border:1px solid rgba(201,161,90,0.4); border-radius:8px;
+    padding:14px; font-size:12px; display:none;
+  }
+  #settings-panel.open{ display:block; }
+  #settings-panel .setting-row{ margin-bottom:12px; }
+  #settings-panel label{
+    display:flex; justify-content:space-between; opacity:0.8; margin-bottom:5px;
+  }
+  #settings-panel input[type="range"]{ width:100%; }
+  #settings-reset{
+    width:100%; padding:6px; margin-top:2px;
+    border:1px solid var(--gold); border-radius:6px;
+    background:transparent; color: var(--gold-bright); font-size:12px; cursor:pointer;
+  }
+  #settings-reset:hover{ background: rgba(201,161,90,0.15); }
+</style>
 </head>
-
 <body>
-  <div id="wrap">
-    <div id="header">Prayer Queue</div>
-    <div id="error"></div>
-    <button id="clear-btn">Clear prayed items</button>
-    <div id="list"></div>
-    <div id="empty" style="display:none;">All caught up 🙏</div>
+<button id="settings-btn" title="Display settings">⚙</button>
+<div id="settings-panel">
+  <div class="setting-row">
+    <label for="font-size-range">Text size <span id="font-size-value">15px</span></label>
+    <input type="range" id="font-size-range" min="10" max="22" step="1" value="15">
   </div>
+  <div class="setting-row">
+    <label for="spacing-range">Item spacing <span id="spacing-value">12px</span></label>
+    <input type="range" id="spacing-range" min="4" max="22" step="1" value="12">
+  </div>
+  <div class="setting-row">
+    <label for="scroll-speed-range">Auto-scroll speed <span id="scroll-speed-value">Normal</span></label>
+    <input type="range" id="scroll-speed-range" min="0" max="4" step="1" value="2">
+  </div>
+  <button id="settings-reset">Reset to defaults</button>
+</div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const key = params.get("key");
-    const errorEl = document.getElementById("error");
-    const listEl = document.getElementById("list");
-    const emptyEl = document.getElementById("empty");
-    const clearBtn = document.getElementById("clear-btn");
+<div id="wrap">
+  <div id="header">Prayer Queue</div>
+  <div id="error"></div>
+  <button id="clear-btn">Clear prayed items</button>
+  <div id="list"></div>
+  <div id="empty" style="display:none;">All caught up 🙏</div>
+</div>
 
-    if (!key) {
-      errorEl.style.display = "block";
-      errorEl.textContent = "Missing ?key — copy this URL fresh from the dashboard.";
-    } else {
-      loadQueue();
-      setInterval(loadQueue, 12000);
+<script>
+const params = new URLSearchParams(window.location.search);
+const key = params.get("key");
+const errorEl = document.getElementById("error");
+const listEl = document.getElementById("list");
+const emptyEl = document.getElementById("empty");
+const clearBtn = document.getElementById("clear-btn");
+
+// ---------------------------------------------------------------------
+// Display settings (gear icon) — saved to this browser's localStorage,
+// so each placement (a small corner Source vs. a big dock) can keep its
+// own feel. Nothing here is sent anywhere; it only affects this one view.
+// ---------------------------------------------------------------------
+const SETTINGS_KEY = "deacon413QueueOverlaySettings";
+const DEFAULT_SETTINGS = { fontSize: 15, spacing: 12, scrollSpeedIndex: 2 };
+const SCROLL_SPEEDS = [0, 0.5, 1, 1.8, 3]; // px per 30ms tick
+const SCROLL_LABELS = ["Off", "Slow", "Normal", "Fast", "Very fast"];
+
+let settings = null; // null = untouched, CSS's own responsive sizing stays in control
+try {
+  const saved = localStorage.getItem(SETTINGS_KEY);
+  if (saved) settings = JSON.parse(saved);
+} catch {}
+
+function effectiveSettings(){ return settings || DEFAULT_SETTINGS; }
+
+function applyCssVars(){
+  if (!settings) return; // nothing customized yet, leave the stylesheet's clamp() alone
+  document.documentElement.style.setProperty("--user-font-size", settings.fontSize + "px");
+  document.documentElement.style.setProperty("--user-item-padding", settings.spacing + "px");
+}
+
+function syncPanelUI(){
+  const s = effectiveSettings();
+  document.getElementById("font-size-range").value = s.fontSize;
+  document.getElementById("font-size-value").textContent = s.fontSize + "px";
+  document.getElementById("spacing-range").value = s.spacing;
+  document.getElementById("spacing-value").textContent = s.spacing + "px";
+  document.getElementById("scroll-speed-range").value = s.scrollSpeedIndex;
+  document.getElementById("scroll-speed-value").textContent = SCROLL_LABELS[s.scrollSpeedIndex];
+}
+
+function updateSetting(field, value){
+  settings = { ...effectiveSettings(), [field]: value };
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+  applyCssVars();
+  syncPanelUI();
+  manageAutoScroll();
+}
+
+document.getElementById("settings-btn").addEventListener("click", () => {
+  document.getElementById("settings-panel").classList.toggle("open");
+});
+document.getElementById("font-size-range").addEventListener("input", (e) => updateSetting("fontSize", Number(e.target.value)));
+document.getElementById("spacing-range").addEventListener("input", (e) => updateSetting("spacing", Number(e.target.value)));
+document.getElementById("scroll-speed-range").addEventListener("input", (e) => updateSetting("scrollSpeedIndex", Number(e.target.value)));
+document.getElementById("settings-reset").addEventListener("click", () => {
+  settings = null;
+  try { localStorage.removeItem(SETTINGS_KEY); } catch {}
+  document.documentElement.style.removeProperty("--user-font-size");
+  document.documentElement.style.removeProperty("--user-item-padding");
+  syncPanelUI();
+  manageAutoScroll();
+});
+
+applyCssVars();
+syncPanelUI();
+
+if (!key) {
+  errorEl.style.display = "block";
+  errorEl.textContent = "Missing ?key — copy this URL fresh from the dashboard.";
+} else {
+  loadQueue();
+  setInterval(loadQueue, 12000);
+}
+
+clearBtn.addEventListener("click", async () => {
+  clearBtn.disabled = true;
+  try {
+    await fetch(`/.netlify/functions/queue-overlay-clear?key=${key}`, { method: "POST" });
+    loadQueue();
+  } finally {
+    clearBtn.disabled = false;
+  }
+});
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function timeAgo(ts){
+  const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+async function loadQueue(){
+  try {
+    const res = await fetch(`/.netlify/functions/queue-overlay-data?key=${key}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(await res.text());
+    const entries = await res.json();
+
+    errorEl.style.display = "none";
+
+    if (entries.length === 0) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      clearBtn.style.display = "none";
+      return;
     }
+    emptyEl.style.display = "none";
+    clearBtn.style.display = entries.some(e => e.prayed) ? "block" : "none";
 
-    clearBtn.addEventListener("click", async () => {
-      clearBtn.disabled = true;
-      try {
-        await fetch(`/.netlify/functions/queue-overlay-clear?key=${key}`, { method: "POST" });
-        loadQueue();
-      } finally {
-        clearBtn.disabled = false;
-      }
+    // New (unprayed) items float to the top so they're the first thing
+    // seen after a break — prayed ones sink below, dimmed.
+    const sorted = [...entries].sort((a, b) => {
+      if (!!a.prayed !== !!b.prayed) return a.prayed ? 1 : -1;
+      return a.at - b.at;
     });
 
-    function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    function timeAgo(ts) {
-      const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
-      if (mins < 1) return "just now";
-      if (mins < 60) return `${mins}m ago`;
-      const hrs = Math.floor(mins / 60);
-      if (hrs < 24) return `${hrs}h ago`;
-      return `${Math.floor(hrs / 24)}d ago`;
-    }
-
-    async function loadQueue() {
-      try {
-        const res = await fetch(`/.netlify/functions/queue-overlay-data?key=${key}`, { cache: "no-store" });
-        if (!res.ok) throw new Error(await res.text());
-        const entries = await res.json();
-
-        errorEl.style.display = "none";
-
-        if (entries.length === 0) {
-          listEl.innerHTML = "";
-          emptyEl.style.display = "block";
-          clearBtn.style.display = "none";
-          return;
-        }
-        emptyEl.style.display = "none";
-        clearBtn.style.display = entries.some(e => e.prayed) ? "block" : "none";
-
-        // New (unprayed) items float to the top so they're the first thing
-        // seen after a break — prayed ones sink below, dimmed.
-        const sorted = [...entries].sort((a, b) => {
-          if (!!a.prayed !== !!b.prayed) return a.prayed ? 1 : -1;
-          return a.at - b.at;
-        });
-
-        listEl.innerHTML = sorted.map(e => `
+    listEl.innerHTML = sorted.map(e => `
       <div class="item ${e.prayed ? 'prayed' : ''}" data-entry-key="${e.entryKey}" data-prayed="${!!e.prayed}">
         <div class="check">${e.prayed ? "✓" : ""}</div>
         <div class="item-body">
@@ -207,30 +263,75 @@
       </div>
     `).join("");
 
-        document.querySelectorAll(".item").forEach(el => {
-          el.addEventListener("click", async () => {
-            const nowPrayed = el.dataset.prayed !== "true";
-            // Optimistic UI update — flips instantly, doesn't wait on the network.
-            el.classList.toggle("prayed", nowPrayed);
-            el.dataset.prayed = String(nowPrayed);
-            el.querySelector(".check").textContent = nowPrayed ? "✓" : "";
-            try {
-              await fetch(`/.netlify/functions/queue-overlay-toggle?key=${key}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ entryKey: el.dataset.entryKey, prayed: nowPrayed }),
-              });
-            } catch {
-              // If the request failed, the next 12s poll will resync the real state.
-            }
+    document.querySelectorAll(".item").forEach(el => {
+      el.addEventListener("click", async () => {
+        const nowPrayed = el.dataset.prayed !== "true";
+        // Optimistic UI update — flips instantly, doesn't wait on the network.
+        el.classList.toggle("prayed", nowPrayed);
+        el.dataset.prayed = String(nowPrayed);
+        el.querySelector(".check").textContent = nowPrayed ? "✓" : "";
+        try {
+          await fetch(`/.netlify/functions/queue-overlay-toggle?key=${key}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entryKey: el.dataset.entryKey, prayed: nowPrayed }),
           });
-        });
-      } catch (err) {
-        errorEl.style.display = "block";
-        errorEl.textContent = "Couldn't load queue: " + err.message;
-      }
-    }
-  </script>
-</body>
+        } catch {
+          // If the request failed, the next 12s poll will resync the real state.
+        }
+      });
+    });
 
+    manageAutoScroll();
+  } catch (err) {
+    errorEl.style.display = "block";
+    errorEl.textContent = "Couldn't load queue: " + err.message;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Auto-scroll — only kicks in when content is actually taller than the
+// space we've been given. A Browser Source has a fixed pixel size and no
+// way to scroll interactively, so if everything doesn't fit, this slowly
+// scrolls top-to-bottom-to-top so every item eventually becomes visible.
+// A roomier dock that already fits everything just stays put — this only
+// activates on genuine overflow, checked fresh after every render.
+// ---------------------------------------------------------------------
+const wrapEl = document.getElementById("wrap");
+let autoScrollTimer = null;
+
+function manageAutoScroll(){
+  clearInterval(autoScrollTimer);
+  const pxPerTick = SCROLL_SPEEDS[effectiveSettings().scrollSpeedIndex];
+  const overflowing = wrapEl.scrollHeight > wrapEl.clientHeight + 4;
+
+  if (!overflowing) {
+    wrapEl.scrollTop = 0;
+    return;
+  }
+  if (pxPerTick === 0) return; // user turned auto-scroll off — leave scrolled position as-is
+
+  let direction = 1;
+  let pauseUntil = 0;
+  autoScrollTimer = setInterval(() => {
+    const now = Date.now();
+    if (now < pauseUntil) return;
+    const maxScroll = wrapEl.scrollHeight - wrapEl.clientHeight;
+    wrapEl.scrollTop += direction * pxPerTick;
+    if (wrapEl.scrollTop >= maxScroll) {
+      wrapEl.scrollTop = maxScroll;
+      direction = -1;
+      pauseUntil = now + 2500; // pause at the bottom before scrolling back up
+    } else if (wrapEl.scrollTop <= 0) {
+      wrapEl.scrollTop = 0;
+      direction = 1;
+      pauseUntil = now + 2500; // pause at the top before scrolling down again
+    }
+  }, 30);
+}
+
+// Re-check whenever the source/dock itself gets resized in OBS.
+window.addEventListener("resize", () => manageAutoScroll());
+</script>
+</body>
 </html>
